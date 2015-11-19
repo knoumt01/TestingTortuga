@@ -33,7 +33,21 @@ public abstract class Whiteboard extends RMICollaboratorImpl implements
         getIdentity().setProperty("color", color);
         System.out.println("color = " + color.getRed() + " " + color.getGreen()
             + " " + color.getBlue());
-        buildUI();
+        buildGUI();
     }
     // build the user interface for the Whiteboard
+    protected void buildGUI() {
+        Frame frame = new Frame();
+        GridBagLayout gridbag = new GridBagLayout();
+        GridBagConstraints constraints = new GridBagConstraints();
+        frame.setLayout(gridbag);
+        frame.addNotify();
+        constraints.fill = GridBagConstraints.BOTH;
+        constraints.gridwidth = GridBagConstraints.REMAINDER;
+        Canvas canvas1 = new java.awt.Canvas();
+        canvas1.setSize(320,240);
+        canvas1.setBackground(Color.white);
+        gridbag.setConstraints(canvas1, constraints);
+        frame.add(canvas1);
+    }
 }
