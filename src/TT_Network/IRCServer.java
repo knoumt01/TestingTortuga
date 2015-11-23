@@ -8,6 +8,8 @@ This file is the IRC server for use either between 2 individuals
 for chat OR on a centralized server. Testing Tortuga can work with
 other IRC servers if this one is not desirable for the end user's
 specific needs.
+
+Code is based on Jircs by Alexander Boyd and modified for TT.
  */
 package TT_Network;
 
@@ -25,55 +27,75 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-/**
- * Jircs: Java IRC Server. This is a simplistic IRC server. It's not designed
- * for production environments; I mainly wrote it to allow me to test out an IRC
- * bot I'm writing (http://jzbot.googlecode.com) when I'm not connected to the
- * internet. Every other dang IRC server takes a minute or so to try and look up
- * my hostname before realizing that I'm not even connected to the internet.
- * Jircs specifically doesn't do that.
- * 
- * @author Alexander Boyd
- * 
- */
 public class IRCServer implements Runnable {
     public static class Channel {
-        private ArrayList<IRCServer> channelMembers = new ArrayList<IRCServer>();
+        private final ArrayList<IRCServer> channelMembers = new ArrayList<>();
         private String topic;
         protected String name;
         
+        public void send(String toSend) {
+            sendNot(null, toSend);
+        }
+        
+        public void memberQuit(String toSend) {
+            /* ?? */
+        }
         public void sendNot(IRCServer not, String toSend) {
             synchronized (mutex) {
                 for (IRCServer con : channelMembers) {
                     if (con != not) {
                         con.send(toSend);
+                    }
                 }
             }
         }
-        
-        public void send(String toSend)
-        {
-            sendNot(null, toSend);
-        }
-        
-        public void memberQuit(String nick)
-        {
-            
-        }
-    }
-    
+    }    
     public static final Object mutex = new Object();
     private Socket socket;
     private String username;
     private String hostname;
     private String nick;
     private String description;
-    public static Map<String, IRCServer> connectionMap = new HashMap<String, IRCServer>();
-    public static Map<String, Channel> channelMap = new HashMap<String, Channel>();
+    public static Map<String, IRCServer> connectionMap = new HashMap<>();
+    public static Map<String, Channel> channelMap = new HashMap<>();
     private static String globalServerName;
     
-    public IRCServer(Socket socket)
+    public IRCServer(final Socket socket)
     {
+        this.outThread = new Thread()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    OutputStream out = socket.getOutputStream();
+                    while (true)
+                    {
+                        String s = outQueue.take();
+                        s = s.replace("\n", "").replace("\r", "");
+                        s = s + "\r\n";
+                        out.write(s.getBytes());
+                        out.flush();
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Outqueue died");
+                    outQueue.clear();
+                    outQueue = null;
+                    e.printStackTrace();
+                    try
+                    {
+                        socket.close();
+                    }
+                    catch (Exception e2)
+                    {
+                        e2.printStackTrace();
+                    }
+                }
+            }
+        };
         this.socket = socket;
     }
     
@@ -84,6 +106,7 @@ public class IRCServer implements Runnable {
     
     /**
      * @param args
+     * @throws java.lang.Throwable
      */
     public static void main(String[] args) throws Throwable
     {
@@ -183,12 +206,9 @@ public class IRCServer implements Runnable {
                 con.sendGlobal("375 " + con.nick + " :- " + globalServerName
                         + " Message of the Day -");
                 con.sendGlobal("372 " + con.nick + " :- Hello. Welcome to "
-                        + globalServerName + ", a Jircs-powered IRC network.");
+                        + globalServerName + ".");
                 con
-                        .sendGlobal("372 "
-                                + con.nick
-                                + " :- See http://code.google.com/p/jwutils/wiki/Jircs "
-                                + "for more info on Jircs.");
+                        .sendGlobal("372 " + con.nick);
                 con.sendGlobal("376 " + con.nick + " :End of /MOTD command.");
             }
         },
@@ -340,7 +360,7 @@ public class IRCServer implements Runnable {
             public void run(IRCServer con, String prefix, String[] arguments)
                     throws Exception
             {
-                ArrayList<String> replies = new ArrayList<String>();
+                ArrayList<String> replies = new ArrayList<>();
                 for (String s : arguments)
                 {
                     IRCServer user = connectionMap.get(s);
@@ -424,7 +444,7 @@ public class IRCServer implements Runnable {
                             channel.send(":" + con.getRepresentation()
                                     + " PART " + channelName);
                             channel.channelMembers.remove(con);
-                            if (channel.channelMembers.size() == 0)
+                            if (channel.channelMembers.isEmpty())
                                 channelMap.remove(channelName);
                         }
                     }
@@ -515,8 +535,8 @@ public class IRCServer implements Runnable {
                 }
             }
         };
-        private int minArgumentCount;
-        private int maxArgumentCount;
+        private final int minArgumentCount;
+        private final int maxArgumentCount;
         
         private Command(int min, int max)
         {
@@ -540,7 +560,7 @@ public class IRCServer implements Runnable {
     
     public static String delimited(String[] items, String delimiter)
     {
-        StringBuffer response = new StringBuffer();
+        StringBuilder response = new StringBuilder();
         boolean first = true;
         for (String s : items)
         {
@@ -557,19 +577,20 @@ public class IRCServer implements Runnable {
     {
         synchronized (mutex)
         {
-            for (String channelName : new ArrayList<String>(channelMap.keySet()))
+            for (String channelName : new ArrayList<>(channelMap.keySet()))
             {
                 Channel channel = channelMap.get(channelName);
                 channel.channelMembers.remove(this);
                 channel.send(":" + getRepresentation() + " QUIT :"
                         + quitMessage);
-                if (channel.channelMembers.size() == 0)
+                if (channel.channelMembers.isEmpty())
                     channelMap.remove(channel.name);
             }
         }
     }
     
     @Override
+    @SuppressWarnings("CallToPrintStackTrace")
     public void run()
     {
         try
@@ -601,42 +622,10 @@ public class IRCServer implements Runnable {
         send(":" + globalServerName + " " + string);
     }
     
-    private LinkedBlockingQueue<String> outQueue = new LinkedBlockingQueue<String>(
+    private LinkedBlockingQueue<String> outQueue = new LinkedBlockingQueue<>(
             1000);
     
-    private Thread outThread = new Thread()
-    {
-        public void run()
-        {
-            try
-            {
-                OutputStream out = socket.getOutputStream();
-                while (true)
-                {
-                    String s = outQueue.take();
-                    s = s.replace("\n", "").replace("\r", "");
-                    s = s + "\r\n";
-                    out.write(s.getBytes());
-                    out.flush();
-                }
-            }
-            catch (Exception e)
-            {
-                System.out.println("Outqueue died");
-                outQueue.clear();
-                outQueue = null;
-                e.printStackTrace();
-                try
-                {
-                    socket.close();
-                }
-                catch (Exception e2)
-                {
-                    e2.printStackTrace();
-                }
-            }
-        }
-    };
+    private final Thread outThread;
     
     private void doServer() throws Exception
     {
@@ -674,7 +663,7 @@ public class IRCServer implements Runnable {
         line = tokens2[0];
         if (tokens2.length > 1)
             trailing = tokens2[1];
-        ArrayList<String> argumentList = new ArrayList<String>();
+        ArrayList<String> argumentList = new ArrayList<>();
         if (!line.equals(""))
             argumentList.addAll(Arrays.asList(line.split(" ")));
         if (trailing != null)
@@ -722,13 +711,6 @@ public class IRCServer implements Runnable {
         commandObject.run(this, prefix, arguments);
     }
     
-    /**
-     * Sends a notice from the server to the user represented by this
-     * connection.
-     * 
-     * @param string
-     *            The text to send as a notice
-     */
     private void sendSelfNotice(String string)
     {
         send(":" + globalServerName + " NOTICE " + nick + " :" + string);
@@ -748,10 +730,7 @@ public class IRCServer implements Runnable {
         {
             output[i] = "";
         }
-        for (int i = 0; i < split.length; i++)
-        {
-            output[i] = split[i];
-        }
+        System.arraycopy(split, 0, output, 0, split.length);
         return output;
     }
     
