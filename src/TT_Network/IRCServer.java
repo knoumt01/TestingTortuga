@@ -9,7 +9,7 @@ for chat OR on a centralized server. Testing Tortuga can work with
 other IRC servers if this one is not desirable for the end user's
 specific needs.
  */
-package TT_IRC;
+package TT_Network;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -37,7 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * 
  */
 public class IRCServer implements Runnable {
-    public static class Channelv{
+    public static class Channel {
         private ArrayList<IRCServer> channelMembers = new ArrayList<IRCServer>();
         private String topic;
         protected String name;
@@ -87,12 +87,14 @@ public class IRCServer implements Runnable {
      */
     public static void main(String[] args) throws Throwable
     {
+        /*
         if (args.length == 0)
         {
             System.out.println("Usage: java jw.jircs.IRCServer <servername>");
             return;
-        }
-        globalServerName = args[0];
+        } */
+        
+        globalServerName = "TestingTortuga";
         ServerSocket ss = new ServerSocket(6667);
         while (true)
         {
