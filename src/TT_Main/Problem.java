@@ -1,5 +1,5 @@
 
-package testingtortuga;
+package TT_Main;
 
 class Problem {
     // set variables for class problem //

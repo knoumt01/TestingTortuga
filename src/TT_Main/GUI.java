@@ -1,5 +1,6 @@
-package testingtortuga;
+package TT_Main;
 
+import TT_Network.IRCServer;
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
@@ -12,6 +13,8 @@ import java.util.StringTokenizer;
 import java.awt.Graphics2D;
 import java.awt.geom.*;
 import java.io.FileWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,7 +54,11 @@ public class GUI extends JFrame {
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenu2 = new javax.swing.JMenu();
+        jMenu5 = new javax.swing.JMenu();
+        jMenu6 = new javax.swing.JMenu();
+        jMenuItem2 = new javax.swing.JMenuItem();
         jMenu4 = new javax.swing.JMenu();
+        jMenuItem1 = new javax.swing.JMenuItem();
         jMenu3 = new javax.swing.JMenu();
 
         jInternalFrame1.setVisible(true);
@@ -144,7 +151,30 @@ public class GUI extends JFrame {
         jMenu2.setText("Edit");
         jMenuBar1.add(jMenu2);
 
+        jMenu5.setText("Network");
+
+        jMenu6.setText("IRC");
+
+        jMenuItem2.setText("Start Server");
+        jMenuItem2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                jMenuItem2MousePressed(evt);
+            }
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                jMenuItem2MouseReleased(evt);
+            }
+        });
+        jMenu6.add(jMenuItem2);
+
+        jMenu5.add(jMenu6);
+
+        jMenuBar1.add(jMenu5);
+
         jMenu4.setText("Help / Support");
+
+        jMenuItem1.setText("jMenuItem1");
+        jMenu4.add(jMenuItem1);
+
         jMenuBar1.add(jMenu4);
 
         jMenu3.setText("Quit");
@@ -276,9 +306,40 @@ public class GUI extends JFrame {
         checkAns("E"); 
     }//GEN-LAST:event_btnEActionPerformed
 
+    private void jMenuItem2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenuItem2MouseReleased
+        final Socket s = null;
+        try {
+            java.awt.EventQueue.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    IRCServer ircServer;
+                    ircServer = new TT_Network.IRCServer(s);
+                }
+            });
+        } catch (InterruptedException | InvocationTargetException ex) {
+            Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_jMenuItem2MouseReleased
+
+    private void jMenuItem2MousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenuItem2MousePressed
+        final Socket s = null;
+        try {
+            java.awt.EventQueue.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    IRCServer ircServer;
+                    ircServer = new TT_Network.IRCServer(s);
+                }
+            });
+        } catch (InterruptedException | InvocationTargetException ex) {
+            Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+                    }//GEN-LAST:event_jMenuItem2MousePressed
+
     public static void main(String args[]) {
 
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 try {
                     new GUI().setVisible(true);
@@ -305,7 +366,11 @@ public class GUI extends JFrame {
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenu jMenu4;
+    private javax.swing.JMenu jMenu5;
+    private javax.swing.JMenu jMenu6;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem1;
+    private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JLabel lblOutput;
     private javax.swing.JLabel lblQuestion;
@@ -329,12 +394,13 @@ public class GUI extends JFrame {
     Problem[] probList = new Problem[nOfLines];
     
     public void loadAllQs() throws FileNotFoundException, IOException {
-        FileReader fr = new FileReader("questions.txt");
-        BufferedReader textReader = new BufferedReader(fr);
-        String textData = textReader.readLine();
-        StringTokenizer st = new StringTokenizer(textData, "|", false);
-    
-        for(int a = 0; a < nOfLines; a++) {
+        try {
+            FileReader fr = new FileReader("questions.txt");
+            BufferedReader textReader = new BufferedReader(fr);
+            String textData = textReader.readLine();
+            StringTokenizer st = new StringTokenizer(textData, "|", false);
+            
+            for(int a = 0; a < nOfLines; a++) {
             questionNumber[a] = st.nextToken();
             question[a] = st.nextToken();
             answerA[a] = st.nextToken();
@@ -343,6 +409,9 @@ public class GUI extends JFrame {
             answerD[a] = st.nextToken();
             answerE[a] = st.nextToken();
             correctAnswer[a] = st.nextToken();
+        }
+        } catch(Exception e) {
+            JOptionPane.showMessageDialog(rootPane, "File Not Found");
         }
     }
     
